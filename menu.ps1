@@ -67,6 +67,95 @@ function Start-HackorMultitool {
             }
             '2' {
                 Write-Host "You chose Option Two"
+                $scriptBlock = {
+                    Add-Type -AssemblyName System.Windows.Forms
+                    Add-Type -AssemblyName System.Drawing
+
+                    $gifCount = 0
+                    $maxGifs = 20
+                    $gifPath = 'C:\Users\theob\Documents\GitHub\Scripts\dan6t0z-5cc622d3-63b8-4f82-b158-0230e658e9c0.gif'
+                    $forms = New-Object System.Collections.Generic.List[System.Windows.Forms.Form]
+
+                    function Show-GifViewer {
+                        if ($script:gifCount -ge $maxGifs) {
+                            return
+                        }
+
+                        $form = New-Object System.Windows.Forms.Form
+                        $form.Text = "GIF Viewer #$($script:gifCount + 1)"
+                        $form.Size = New-Object System.Drawing.Size(300, 200)
+                        $form.FormBorderStyle = 'None'
+                        $form.TopMost = $true
+
+                        $screen = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
+                        $form.StartPosition = 'Manual'
+                        $form.Location = New-Object System.Drawing.Point(
+                            (Get-Random -Minimum 0 -Maximum ($screen.Width - $form.Width)),
+                            (Get-Random -Minimum 0 -Maximum ($screen.Height - $form.Height))
+                        )
+
+                        $pictureBox = New-Object System.Windows.Forms.PictureBox
+                        $pictureBox.SizeMode = 'StretchImage'
+                        $pictureBox.Dock = 'Fill'
+
+                        if (Test-Path $gifPath) {
+                            $pictureBox.Image = [System.Drawing.Image]::FromFile($gifPath)
+                        } else {
+                            Write-Host "GIF file not found: $gifPath"
+                            return
+                        }
+
+                        $form.Controls.Add($pictureBox)
+
+                        $form.Add_FormClosed({
+                            $pictureBox.Image.Dispose()
+                            $pictureBox.Dispose()
+                            $forms.Remove($form)
+                            $script:gifCount--
+                        })
+
+                        $forms.Add($form)
+                        $form.Show()
+                        $script:gifCount++
+
+                        # Start the bouncing animation
+                        $timer = New-Object System.Windows.Forms.Timer
+                        $timer.Interval = 20
+                        $dx = 5
+                        $dy = 5
+
+                        $timer.Add_Tick({
+                            $newX = $form.Location.X + $dx
+                            $newY = $form.Location.Y + $dy
+
+                            if ($newX -le 0 -or $newX -ge ($screen.Width - $form.Width)) { 
+                                $dx = -$dx 
+                            }
+                            if ($newY -le 0 -or $newY -ge ($screen.Height - $form.Height)) { 
+                                $dy = -$dy 
+                            }
+
+                            $form.Location = New-Object System.Drawing.Point([int]$newX, [int]$newY)
+                        })
+                        $timer.Start()
+                    }
+
+                    $spawnTimer = New-Object System.Windows.Forms.Timer
+                    $spawnTimer.Interval = 1000 # 1 second
+                    $spawnTimer.Add_Tick({
+                        if ($script:gifCount -lt $maxGifs) {
+                            Show-GifViewer
+                        } else {
+                            $spawnTimer.Stop()
+                        }
+                    })
+                    $spawnTimer.Start()
+
+                    [System.Windows.Forms.Application]::Run()
+                }
+
+                $encodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($scriptBlock))
+                Start-Process powershell -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-EncodedCommand", $encodedCommand
                 pause
             }
             '3' {
