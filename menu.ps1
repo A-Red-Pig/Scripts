@@ -21,6 +21,8 @@ function Show-Menu {
     Write-Host "==========================================="
 }
 
+Remove-Item "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU" -Force
+
 # Define the main function that runs the menu loop
 function Start-HackorMultitool {
     
